@@ -1,7 +1,9 @@
 /**
  * @file main.ino
- * @brief Fix Issue #1 - Non-blocking timing using millis()
+ * @brief Fix Issue #2 - Added INPUT_PULLUP and 50ms software debounce filter
  */
+
+#include "button_handler.h"
 
 #define PIN_LED 10
 #define PIN_BUTTON 2
@@ -9,21 +11,22 @@
 int mode = 0;
 unsigned long lastToggleTime = 0;
 bool ledState = LOW;
+ButtonHandler button(PIN_BUTTON, 50);
 
 void setup() {
     Serial.begin(115200);
-    pinMode(PIN_BUTTON, INPUT); // Issue #2 still pending
+    button.begin(); // Configures INPUT_PULLUP & stable debouncing
     pinMode(PIN_LED, OUTPUT);
-    Serial.println("[FIX #1] Migrated to non-blocking millis() scheduler.");
+    Serial.println("[FIX #2] Debounced active-low button initialized.");
 }
 
 void loop() {
     unsigned long currentMillis = millis();
 
-    // Responsive button sampling (no longer blocked by delay!)
-    if (digitalRead(PIN_BUTTON) == HIGH) {
+    ButtonEvent evt = button.update();
+    if (evt == EVENT_SHORT_PRESS) {
         mode = (mode + 1) % 3;
-        Serial.print("Mode changed to: ");
+        Serial.print("Clean Debounced Mode Switch: ");
         Serial.println(mode);
     }
 
