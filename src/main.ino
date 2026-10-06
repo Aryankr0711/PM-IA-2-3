@@ -1,47 +1,36 @@
 /**
  * @file main.ino
- * @brief Initial Baseline Prototype - Simple LED Blinker with Pushbutton
- * @note QA Audit: Contains known defects (blocking delay, floating pin, no current limiter, no WDT)
+ * @brief Fix Issue #1 - Non-blocking timing using millis()
  */
 
 #define PIN_LED 10
 #define PIN_BUTTON 2
 
 int mode = 0;
+unsigned long lastToggleTime = 0;
+bool ledState = LOW;
 
 void setup() {
-    Serial.begin(9600);
-    // BUG #2: Plain INPUT leaves pin floating without pull-up/pull-down resistor!
-    pinMode(PIN_BUTTON, INPUT);
-    // BUG #3: Direct LED drive without 220 ohm resistor exceeds 40mA GPIO limit!
+    Serial.begin(115200);
+    pinMode(PIN_BUTTON, INPUT); // Issue #2 still pending
     pinMode(PIN_LED, OUTPUT);
-    Serial.println("Initial Prototype Booted.");
+    Serial.println("[FIX #1] Migrated to non-blocking millis() scheduler.");
 }
 
 void loop() {
-    // BUG #2: Direct read without debouncing causes erratic toggling and multi-switching
+    unsigned long currentMillis = millis();
+
+    // Responsive button sampling (no longer blocked by delay!)
     if (digitalRead(PIN_BUTTON) == HIGH) {
         mode = (mode + 1) % 3;
         Serial.print("Mode changed to: ");
         Serial.println(mode);
     }
 
-    // BUG #1: Blocking delay() starves CPU and introduces 1000ms latency on button presses!
-    if (mode == 0) {
-        digitalWrite(PIN_LED, HIGH);
-        delay(500); // Blocking delay
-        digitalWrite(PIN_LED, LOW);
-        delay(500); // Blocking delay
-    } else if (mode == 1) {
-        digitalWrite(PIN_LED, HIGH);
-        delay(100);
-        digitalWrite(PIN_LED, LOW);
-        delay(100);
-    } else {
-        digitalWrite(PIN_LED, HIGH);
-        delay(1000);
-        digitalWrite(PIN_LED, LOW);
-        delay(1000);
+    unsigned long interval = (mode == 0) ? 500 : ((mode == 1) ? 100 : 1000);
+    if (currentMillis - lastToggleTime >= interval) {
+        lastToggleTime = currentMillis;
+        ledState = !ledState;
+        digitalWrite(PIN_LED, ledState);
     }
-    // BUG #4: No Watchdog Timer; any electrical transient freezes loop permanently!
 }
