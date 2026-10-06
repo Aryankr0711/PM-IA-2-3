@@ -1,0 +1,18 @@
+# Compiled Arduino binaries
+*.hex
+*.elf
+*.bin
+*.o
+*.a
+
+# IDE metadata & temp files
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+
+# Build directories
+build/
+dist/
